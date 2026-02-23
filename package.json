@@ -7,7 +7,7 @@
   },
   "scripts": {
     "start": "vite",
-    "build": "vite build",
+    "build": "vite build --base=/elm-dropbox-shared-app-state-demo",
     "test": "elm-test",
     "format-fix-all": "elm-format --yes src/ review/",
     "format-validate": "elm-format --validate src/ review/",
