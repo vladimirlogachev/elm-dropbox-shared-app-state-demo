@@ -207,15 +207,10 @@ update route msg model =
                     ( model, Effect.none )
 
         Shared.Msg.SignOut ->
-            let
-                authUrl : String
-                authUrl =
-                    Dropbox.authorizationUrl standardAuthRequest model.redirectUri
-            in
             ( model
             , Effect.batch
                 [ Effect.sendCmd Ports.clearAuth
-                , Effect.loadExternalUrl authUrl
+                , Effect.loadExternalUrl model.redirectUri
                 ]
             )
 
