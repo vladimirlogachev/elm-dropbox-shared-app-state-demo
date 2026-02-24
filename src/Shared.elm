@@ -8,10 +8,10 @@ module Shared exposing
     , update
     )
 
+import AppState exposing (AppState, DecodeOutcome(..), PendingAction)
 import Browser.Events
 import Constants
 import Dropbox
-import DropboxAppState exposing (DecodeOutcome(..), DropboxAppState, PendingAction)
 import Effect exposing (Effect)
 import GridLayout2
 import Json.Decode
@@ -188,9 +188,9 @@ update route msg model =
             case model.auth of
                 Just auth ->
                     let
-                        emptyState : DropboxAppState
+                        emptyState : AppState
                         emptyState =
-                            DropboxAppState.empty
+                            AppState.empty
                     in
                     ( { model
                         | storageContents = Success emptyState
@@ -297,12 +297,12 @@ startDownload auth =
         )
 
 
-startUpload : Dropbox.UserAuth -> DropboxAppState -> Maybe String -> Effect Msg
+startUpload : Dropbox.UserAuth -> AppState -> Maybe String -> Effect Msg
 startUpload auth appState maybeRev =
     let
         content : String
         content =
-            appState |> DropboxAppState.encoder |> E.encode 0
+            appState |> AppState.encoder |> E.encode 0
     in
     Effect.sendCmd
         (content
@@ -332,9 +332,9 @@ clearActions model =
 initWithEmpty : Model -> Dropbox.UserAuth -> ( Model, Effect Msg )
 initWithEmpty model auth =
     let
-        emptyState : DropboxAppState
+        emptyState : AppState
         emptyState =
-            DropboxAppState.empty
+            AppState.empty
     in
     ( { model
         | storageContents = Success emptyState
@@ -349,7 +349,7 @@ handleFileResponse : Route () -> Model -> Result String Dropbox.DownloadResponse
 handleFileResponse _ model response =
     case response of
         Ok downloadResponse ->
-            case Json.Decode.decodeString DropboxAppState.decodeAppState downloadResponse.content of
+            case Json.Decode.decodeString AppState.decodeAppState downloadResponse.content of
                 Ok (Decoded appState) ->
                     ( { model
                         | storageContents = Success appState
@@ -398,15 +398,15 @@ handleSaveRequested model action =
     case ( model.auth, model.verifiedContents, model.storageContents ) of
         ( Just auth, Just verified, Success optimistic ) ->
             let
-                newOptimistic : DropboxAppState
+                newOptimistic : AppState
                 newOptimistic =
-                    DropboxAppState.applyAction action optimistic
+                    AppState.applyAction action optimistic
             in
             if List.isEmpty model.inFlightActions then
                 let
-                    uploadState : DropboxAppState
+                    uploadState : AppState
                     uploadState =
-                        DropboxAppState.applyAction action verified
+                        AppState.applyAction action verified
                 in
                 ( { model
                     | storageContents = Success newOptimistic
@@ -433,14 +433,14 @@ handleSaveResponse model result =
     case result of
         Ok fileMetadata ->
             let
-                newVerified : DropboxAppState
+                newVerified : AppState
                 newVerified =
                     case model.verifiedContents of
                         Just v ->
-                            List.foldl DropboxAppState.applyAction v model.inFlightActions
+                            List.foldl AppState.applyAction v model.inFlightActions
 
                         Nothing ->
-                            DropboxAppState.empty
+                            AppState.empty
 
                 newModel : Model
                 newModel =
@@ -454,9 +454,9 @@ handleSaveResponse model result =
             case ( model.auth, model.queuedActions ) of
                 ( Just auth, next :: rest ) ->
                     let
-                        uploadState : DropboxAppState
+                        uploadState : AppState
                         uploadState =
-                            DropboxAppState.applyAction next newVerified
+                            AppState.applyAction next newVerified
                     in
                     ( { newModel
                         | inFlightActions = [ next ]
@@ -517,7 +517,7 @@ handleConflictDownload : Model -> Result String Dropbox.DownloadResponse -> ( Mo
 handleConflictDownload model response =
     case response of
         Ok downloadResponse ->
-            case Json.Decode.decodeString DropboxAppState.decodeAppState downloadResponse.content of
+            case Json.Decode.decodeString AppState.decodeAppState downloadResponse.content of
                 Ok (Decoded freshState) ->
                     case model.auth of
                         Just auth ->
@@ -526,13 +526,13 @@ handleConflictDownload model response =
                                 allActions =
                                     model.inFlightActions ++ model.queuedActions
 
-                                uploadState : DropboxAppState
+                                uploadState : AppState
                                 uploadState =
-                                    List.foldl DropboxAppState.applyAction freshState model.inFlightActions
+                                    List.foldl AppState.applyAction freshState model.inFlightActions
 
-                                optimistic : DropboxAppState
+                                optimistic : AppState
                                 optimistic =
-                                    List.foldl DropboxAppState.applyAction freshState allActions
+                                    List.foldl AppState.applyAction freshState allActions
                             in
                             ( { model
                                 | storageContents = Success optimistic

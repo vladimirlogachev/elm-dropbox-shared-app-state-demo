@@ -1,8 +1,8 @@
 module Pages.Chat exposing (Model, Msg, page)
 
+import AppState exposing (AppState, ChatRecord, PendingAction(..), listMessages)
 import Auth
 import Color
-import DropboxAppState exposing (ChatRecord, DropboxAppState, PendingAction(..), listMessages)
 import Effect
 import Element exposing (..)
 import Element.Background as Background
@@ -119,7 +119,7 @@ viewContent shared model =
             el [] (text "Not loaded")
 
 
-viewChat : DropboxAppState -> Model -> Element Msg
+viewChat : AppState -> Model -> Element Msg
 viewChat sc model =
     let
         isEmpty : Bool

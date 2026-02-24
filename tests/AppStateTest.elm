@@ -1,6 +1,6 @@
-module DropboxAppStateTest exposing (suite)
+module AppStateTest exposing (suite)
 
-import DropboxAppState exposing (DecodeOutcome(..), DropboxAppState, PendingAction(..))
+import AppState exposing (DecodeOutcome(..), AppState, PendingAction(..))
 import Expect
 import Json.Decode as D
 import Json.Encode as E
@@ -24,7 +24,7 @@ testStateV1 =
     """
 
 
-expectedChat : List DropboxAppState.ChatRecord
+expectedChat : List AppState.ChatRecord
 expectedChat =
     [ { userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
       , message = "Hello, world!"
@@ -33,7 +33,7 @@ expectedChat =
     ]
 
 
-expectDecoded : (DropboxAppState -> Expect.Expectation) -> Result D.Error DecodeOutcome -> Expect.Expectation
+expectDecoded : (AppState -> Expect.Expectation) -> Result D.Error DecodeOutcome -> Expect.Expectation
 expectDecoded check result =
     case result of
         Ok (Decoded state) ->
@@ -78,21 +78,21 @@ testStateInvalid =
 
 suite : Test
 suite =
-    describe "DropboxAppState decoders"
-        [ test "dropboxAppStateDecoderV1 decodes valid state" <|
+    describe "AppState decoders"
+        [ test "appStateDecoderV1 decodes valid state" <|
             \_ ->
-                D.decodeString DropboxAppState.dropboxAppStateDecoderV1 testStateV1
+                D.decodeString AppState.appStateDecoderV1 testStateV1
                     |> expectDecoded
                         (\s -> Expect.equal expectedChat s.chat)
         , test "decodeAppState returns Decoded for valid state" <|
             \_ ->
-                D.decodeString DropboxAppState.decodeAppState testStateV1
+                D.decodeString AppState.decodeAppState testStateV1
                     |> expectDecoded
                         (\s -> Expect.equal expectedChat s.chat)
         , test "chat round-trip encode/decode" <|
             \_ ->
                 let
-                    original : DropboxAppState
+                    original : AppState
                     original =
                         { chat =
                             [ { userAgent = "test-agent"
@@ -104,54 +104,54 @@ suite =
 
                     json : String
                     json =
-                        DropboxAppState.encoder original |> E.encode 0
+                        AppState.encoder original |> E.encode 0
                 in
-                D.decodeString DropboxAppState.decodeAppState json
+                D.decodeString AppState.decodeAppState json
                     |> expectDecoded
                         (\s -> Expect.equal original.chat s.chat)
         , test "decodeAppState returns VersionTooHigh for future version" <|
             \_ ->
-                D.decodeString DropboxAppState.decodeAppState testStateFutureVersion
+                D.decodeString AppState.decodeAppState testStateFutureVersion
                     |> Expect.equal (Ok VersionTooHigh)
         , test "decodeAppState returns Invalid for damaged state" <|
             \_ ->
-                D.decodeString DropboxAppState.decodeAppState testStateDamaged
+                D.decodeString AppState.decodeAppState testStateDamaged
                     |> Expect.equal (Ok (Invalid "Damaged app state (version 1), consider reinitializing"))
         , test "decodeAppState fails for garbage JSON" <|
             \_ ->
-                D.decodeString DropboxAppState.decodeAppState testStateInvalid
+                D.decodeString AppState.decodeAppState testStateInvalid
                     |> Expect.err
         , test "applyAction AddMessage prepends to chat" <|
             \_ ->
                 let
-                    record : DropboxAppState.ChatRecord
+                    record : AppState.ChatRecord
                     record =
                         { userAgent = "test"
                         , message = "hello"
                         , timestamp = Time.millisToPosix 1700000000000
                         }
 
-                    result : DropboxAppState
+                    result : AppState
                     result =
-                        DropboxAppState.applyAction (AddMessage record) DropboxAppState.empty
+                        AppState.applyAction (AddMessage record) AppState.empty
                 in
                 Expect.equal [ record ] result.chat
         , test "applyAction AddMessage prepends multiple messages" <|
             \_ ->
                 let
-                    record1 : DropboxAppState.ChatRecord
+                    record1 : AppState.ChatRecord
                     record1 =
                         { userAgent = "test", message = "first", timestamp = Time.millisToPosix 1000 }
 
-                    record2 : DropboxAppState.ChatRecord
+                    record2 : AppState.ChatRecord
                     record2 =
                         { userAgent = "test", message = "second", timestamp = Time.millisToPosix 2000 }
 
-                    result : DropboxAppState
+                    result : AppState
                     result =
-                        DropboxAppState.empty
-                            |> DropboxAppState.applyAction (AddMessage record1)
-                            |> DropboxAppState.applyAction (AddMessage record2)
+                        AppState.empty
+                            |> AppState.applyAction (AddMessage record1)
+                            |> AppState.applyAction (AddMessage record2)
                 in
                 Expect.equal [ record2, record1 ] result.chat
         , test "decodeAppState v1 ignores extra fields" <|
@@ -166,7 +166,7 @@ suite =
                         }
                         """
                 in
-                D.decodeString DropboxAppState.decodeAppState stateWithExtra
+                D.decodeString AppState.decodeAppState stateWithExtra
                     |> expectDecoded
                         (\s -> Expect.equal [] s.chat)
         ]

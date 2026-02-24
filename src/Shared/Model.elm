@@ -1,7 +1,7 @@
 module Shared.Model exposing (Model, Toast, ToastType(..))
 
+import AppState exposing (AppState, PendingAction)
 import Dropbox
-import DropboxAppState exposing (DropboxAppState, PendingAction)
 import GridLayout2
 import RemoteData exposing (RemoteData)
 
@@ -21,8 +21,8 @@ type alias Toast =
 type alias Model =
     { layout : GridLayout2.LayoutState
     , auth : Maybe Dropbox.UserAuth
-    , storageContents : RemoteData String DropboxAppState
-    , verifiedContents : Maybe DropboxAppState
+    , storageContents : RemoteData String AppState
+    , verifiedContents : Maybe AppState
     , userAgent : String
     , redirectUri : String
     , fileRevision : Maybe String

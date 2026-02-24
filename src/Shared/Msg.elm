@@ -1,7 +1,7 @@
 module Shared.Msg exposing (Msg(..))
 
+import AppState exposing (PendingAction)
 import Dropbox
-import DropboxAppState exposing (PendingAction)
 import GridLayout2
 import Shared.Model exposing (ToastType)
 

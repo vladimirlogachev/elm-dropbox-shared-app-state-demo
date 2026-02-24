@@ -16,9 +16,9 @@ module Effect exposing
     , toCmd
     )
 
+import AppState
 import Browser.Navigation
 import Dict exposing (Dict)
-import DropboxAppState
 import Route
 import Route.Path
 import Shared.Model exposing (ToastType(..))
@@ -82,7 +82,7 @@ sendSharedMsg =
     SendSharedMsg
 
 
-saveData : DropboxAppState.PendingAction -> Effect msg
+saveData : AppState.PendingAction -> Effect msg
 saveData action =
     SendSharedMsg (Shared.Msg.SaveRequested action)
 

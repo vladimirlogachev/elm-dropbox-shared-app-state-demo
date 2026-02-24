@@ -28,7 +28,7 @@ Elm SPA built with [elm-land](https://elm.land/) framework, [elm-ui](https://pac
 
 ### Data Model
 
-`DropboxAppState` contains a flat list of `ChatRecord`s (`{ userAgent, message, timestamp }`). Stored as JSON in Dropbox at `/app-state.json` with schema `{ "chat": [...], "stateVersion": N }`. The `stateVersion` field is serialization metadata — it lives in the JSON encoder/decoder but not in the Elm record. No opaque types — direct record access.
+`AppState` contains a flat list of `ChatRecord`s (`{ userAgent, message, timestamp }`). Stored as JSON in Dropbox at `/app-state.json` with schema `{ "chat": [...], "stateVersion": N }`. The `stateVersion` field is serialization metadata — it lives in the JSON encoder/decoder but not in the Elm record. No opaque types — direct record access.
 
 `PendingAction` is a union type (`AddMessage ChatRecord`) representing semantic operations on state. Actions are first-class data — queued, replayed, and applied via `applyAction`. Reinitialize is handled separately (bypasses the action/optimistic-update system, directly uploads fresh state).
 
@@ -58,7 +58,7 @@ Key state separation: `storageContents` = what the UI sees (possibly ahead of se
 ### Module Responsibilities
 
 - **Shared.elm** — Dropbox OAuth flow, file I/O (`/app-state.json`), optimistic update orchestration, conflict resolution, window resize, grid layout config. Auto-initializes empty state when file not found or JSON invalid.
-- **Shared/Model.elm** — Shared state: `GridLayout2.LayoutState`, `Maybe Dropbox.UserAuth`, `storageContents : RemoteData String DropboxAppState` (from `krisajenkins/remotedata`: NotAsked | Loading | Success | Failure), `verifiedContents` (last server-confirmed state), `fileRevision` (Dropbox rev for conflict detection), `inFlightActions`/`queuedActions` (pending action queues), `dropboxConflictRetryCount`, `userAgent`, `redirectUri`, `toasts`, `nextToastId`. Also defines `ToastType` (`SuccessToast | ErrorToast`) and `Toast` record.
+- **Shared/Model.elm** — Shared state: `GridLayout2.LayoutState`, `Maybe Dropbox.UserAuth`, `storageContents : RemoteData String AppState` (from `krisajenkins/remotedata`: NotAsked | Loading | Success | Failure), `verifiedContents` (last server-confirmed state), `fileRevision` (Dropbox rev for conflict detection), `inFlightActions`/`queuedActions` (pending action queues), `dropboxConflictRetryCount`, `userAgent`, `redirectUri`, `toasts`, `nextToastId`. Also defines `ToastType` (`SuccessToast | ErrorToast`) and `Toast` record.
 - **Shared/Msg.elm** — Shared messages: `GotFileResponse`, `SaveRequested PendingAction`, `GotSaveResponse`, `GotConflictDownloadResponse`, `ReinitializeState`, `SignOut`, `AddToast ToastType String`, `DismissToast`, `GotNewWindowSize`.
 - **Effect.elm** — Custom effect type for elm-land. Variants: `None | Batch | SendCmd | PushUrl | ReplaceUrl | LoadExternalUrl | SendSharedMsg`. Helpers: `saveData` (takes a `PendingAction`), `reinitializeState`, `signOut`, `addSuccessToast`, `addErrorToast`.
 - **View.elm** — elm-ui based View wrapper (`{ title, attributes, element }`).
@@ -71,7 +71,7 @@ Key state separation: `storageContents` = what the UI sees (possibly ahead of se
 - **Color.elm** — Color palette: `white`, `black`, `grey`, `light1` (green), `light2` (orange), `primaryBlue`, `greyDimmed1`, `greyDimmed3`, `black025`.
 - **Layouts/AppLayout.elm** — App layout using `GridLayout2` responsive grid. Renders a 5px amber status bar at top when `inFlightActions` is non-empty. Shows navigation bar (Chat, Help, Settings) when authenticated. Renders toasts with color by type (green for success, red for error).
 - **Layouts/LandingLayout.elm** — Minimal layout for landing page. Only `GridLayout2` responsive grid — no navigation bar, no status bar, no toasts. Uses `Never` as `Msg` type (fully stateless).
-- **DropboxAppState.elm** — `DropboxAppState`, `ChatRecord`, `PendingAction(..)` (`AddMessage`), JSON encode/decode, `applyAction`, `listMessages`, `empty`.
+- **AppState.elm** — `AppState`, `ChatRecord`, `PendingAction(..)` (`AddMessage`), JSON encode/decode, `applyAction`, `listMessages`, `empty`.
 - **TextStyle.elm** — Typography: `body`, `secondary` (system-ui, for chat), `contentBody`, `subheaderDesktop`, `header`, `subheader`, `codeBody` (Inter, for Markdown).
 - **Utils.elm** — Helpers: `parseDevice`.
 
@@ -91,15 +91,15 @@ Key state separation: `storageContents` = what the UI sees (possibly ahead of se
 
 ### Versioned State Decoders (CRITICAL)
 
-`dropboxAppStateDecoder` in `DropboxAppState.elm` uses `D.oneOf` with a list of versioned decoders (`dropboxAppStateDecoderV1`, etc.). This ensures backward compatibility with data already stored in users' Dropbox.
+`appStateDecoder` in `AppState.elm` uses `D.oneOf` with a list of versioned decoders (`appStateDecoderV1`, etc.). This ensures backward compatibility with data already stored in users' Dropbox.
 
-**When changing `DropboxAppState` or `ChatRecord` structure:**
+**When changing `AppState` or `ChatRecord` structure:**
 
-1. Bump `currentStateVersion` in `DropboxAppState.elm` to match the new schema version. This value is used at runtime to detect version mismatches — if a client receives state with a higher version from Dropbox, it shows a "refresh the page" toast instead of silently corrupting data. Always keep `currentStateVersion` in sync with the latest decoder version number.
-2. Create a new versioned decoder (`dropboxAppStateDecoderV2`, etc.) for the new schema. Each versioned decoder must check `stateVersion` matches its expected version (e.g., `v == 2`) and `D.fail` otherwise.
-3. Add it to the **end** of the `D.oneOf` list in `dropboxAppStateDecoder` (newest last — the current format is tried first, fallbacks follow).
-4. In `tests/DropboxAppStateTest.elm`, add a `testStateV2` JSON string with an example of the new format.
-5. Write tests that verify: (a) the new versioned decoder decodes `testStateV2`, (b) `dropboxAppStateDecoder` decodes both `testStateV1` and `testStateV2`.
+1. Bump `currentStateVersion` in `AppState.elm` to match the new schema version. This value is used at runtime to detect version mismatches — if a client receives state with a higher version from Dropbox, it shows a "refresh the page" toast instead of silently corrupting data. Always keep `currentStateVersion` in sync with the latest decoder version number.
+2. Create a new versioned decoder (`appStateDecoderV2`, etc.) for the new schema. Each versioned decoder must check `stateVersion` matches its expected version (e.g., `v == 2`) and `D.fail` otherwise.
+3. Add it to the **end** of the `D.oneOf` list in `appStateDecoder` (newest last — the current format is tried first, fallbacks follow).
+4. In `tests/AppStateTest.elm`, add a `testStateV2` JSON string with an example of the new format.
+5. Write tests that verify: (a) the new versioned decoder decodes `testStateV2`, (b) `appStateDecoder` decodes both `testStateV1` and `testStateV2`.
 6. Never remove old versioned decoders — existing users have data in old formats.
 
 ### Linting (elm-review)

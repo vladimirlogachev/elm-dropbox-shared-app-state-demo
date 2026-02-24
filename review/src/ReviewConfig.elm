@@ -45,7 +45,7 @@ config =
     , NoUnoptimizedRecursion.rule (NoUnoptimizedRecursion.optOutWithComment "IGNORE TCO")
         |> Rule.ignoreErrorsForFiles [ "src/Effect.elm" ]
     , Simplify.rule Simplify.defaults
-        |> Rule.ignoreErrorsForFiles [ "src/DropboxAppState.elm" ]
+        |> Rule.ignoreErrorsForFiles [ "src/AppState.elm" ]
     , NoTestValuesInProductionCode.rule
         (NoTestValuesInProductionCode.startsWith "stub_")
     , NoMissingSubscriptionsCall.rule
